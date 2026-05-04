@@ -1322,7 +1322,7 @@ async function loadProfile() {
     document.getElementById('profile-details').innerHTML = `
       <div style="display:flex;flex-direction:column;gap:18px;">
         ${[
-          { label: 'User ID', value: `#${u.id}` },
+          <!-- { label: 'User ID', value: `#${u.id}` }, -->
           { label: 'Full Name', value: u.full_name || '—' },
           { label: 'Email', value: u.email || '—' },
           { label: 'Role', value: u.is_admin ? 'Administrator' : 'Analyst' },
