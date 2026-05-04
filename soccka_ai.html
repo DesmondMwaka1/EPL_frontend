@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SOCCKA AI — EPL Prediction Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #060810;
+  --bg2: #0d1120;
+  --bg3: #141928;
+  --card: #111827;
+  --card2: #1a2236;
+  --border: #1e2d47;
+  --border2: #263552;
+  --accent: #00e5ff;
+  --accent2: #0099cc;
+  --green: #00ff88;
+  --red: #ff3d6b;
+  --amber: #ffb800;
+  --text: #e8eef8;
+  --text2: #8899bb;
+  --text3: #4a5e82;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --glow: 0 0 30px rgba(0,229,255,0.12);
+  --glow-strong: 0 0 60px rgba(0,229,255,0.2);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── NOISE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; opacity: 0.6;
+}
+
+/* ── GRID BACKGROUND ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+/* ── AUTH SCREEN ── */
+#auth-screen {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse 80% 60% at 50% 40%, #0a1628 0%, #060810 100%);
+}
+
+.auth-glow {
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,229,255,0.06) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+@keyframes pulse-glow {
+  0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 0.6; }
+  50% { transform: translate(-50%,-50%) scale(1.1); opacity: 1; }
+}
+
+.auth-box {
+  position: relative; z-index: 1;
+  width: 420px;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 48px 40px;
+  box-shadow: var(--glow-strong), 0 40px 80px rgba(0,0,0,0.6);
+  animation: slide-up 0.6s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.auth-logo {
+  text-align: center; margin-bottom: 32px;
+}
+.auth-logo .wordmark {
+  font-family: var(--font-display);
+  font-size: 48px; letter-spacing: 3px;
+  color: var(--accent);
+  text-shadow: 0 0 40px rgba(0,229,255,0.4);
+  line-height: 1;
+}
+.auth-logo .sub {
+  font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+  color: var(--text3); margin-top: 6px;
+  font-weight: 500;
+}
+
+.auth-tabs {
+  display: flex; gap: 2px;
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  padding: 3px; margin-bottom: 28px;
+}
+.auth-tab {
+  flex: 1; padding: 8px 0; text-align: center;
+  font-size: 13px; font-weight: 500; letter-spacing: 0.5px;
+  cursor: pointer; border-radius: 6px;
+  transition: all 0.2s;
+  color: var(--text3);
+  border: none; background: none;
+}
+.auth-tab.active {
+  background: var(--card2);
+  color: var(--text);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.4);
+}
+
+.field { margin-bottom: 18px; }
+.field label {
+  display: block; font-size: 11px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 8px;
+}
+.field input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  color: var(--text); font-family: var(--font-body); font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.field input:focus {
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 3px rgba(0,229,255,0.08);
+}
+.field input::placeholder { color: var(--text3); }
+
+.btn-primary {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #00c4e0, #0080b3);
+  border: none; border-radius: var(--radius-sm);
+  color: #fff; font-family: var(--font-body);
+  font-size: 14px; font-weight: 600; letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(0,180,220,0.3);
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 30px rgba(0,180,220,0.45);
+}
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.auth-error {
+  background: rgba(255,61,107,0.1);
+  border: 1px solid rgba(255,61,107,0.3);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px; color: var(--red);
+  margin-bottom: 18px; display: none;
+}
+
+/* ── MAIN APP ── */
+#app { display: none; position: relative; z-index: 1; min-height: 100vh; }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  height: 64px;
+  background: rgba(6,8,16,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 32px;
+  gap: 0;
+}
+.nav-logo {
+  font-family: var(--font-display);
+  font-size: 28px; letter-spacing: 2px;
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(0,229,255,0.3);
+  margin-right: 40px; flex-shrink: 0;
+}
+.nav-links { display: flex; gap: 2px; flex: 1; }
+.nav-link {
+  padding: 8px 18px;
+  font-size: 13px; font-weight: 500; letter-spacing: 0.3px;
+  color: var(--text3);
+  cursor: pointer; border-radius: var(--radius-sm);
+  transition: all 0.2s; border: none; background: none;
+  position: relative;
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.nav-link.active { color: var(--accent); }
+.nav-link.active::after {
+  content: '';
+  position: absolute; bottom: -1px; left: 18px; right: 18px;
+  height: 2px; background: var(--accent);
+  border-radius: 1px 1px 0 0;
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.nav-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.nav-user {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--text2);
+}
+.nav-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, #00c4e0, #0055aa);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600; color: #fff;
+  flex-shrink: 0;
+}
+.nav-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--green);
+  font-family: var(--font-mono);
+}
+.nav-status::before {
+  content: '';
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: blink 2s infinite;
+}
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.btn-logout {
+  padding: 7px 16px; font-size: 12px; font-weight: 500;
+  background: rgba(255,61,107,0.1);
+  border: 1px solid rgba(255,61,107,0.25);
+  color: var(--red); border-radius: var(--radius-sm);
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-logout:hover { background: rgba(255,61,107,0.2); }
+
+/* ── PAGE ── */
+.page { display: none; padding: 88px 32px 48px; max-width: 1280px; margin: 0 auto; }
+.page.active { display: block; animation: fade-in 0.4s ease; }
+@keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── PAGE HEADER ── */
+.page-header { margin-bottom: 36px; }
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: 52px; letter-spacing: 2px;
+  color: var(--text); line-height: 1;
+}
+.page-header h1 span { color: var(--accent); }
+.page-header p {
+  font-size: 14px; color: var(--text2); margin-top: 10px;
+  max-width: 520px; line-height: 1.6;
+}
+
+/* ── STAT CARDS ROW ── */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.3s, transform 0.2s;
+}
+.stat-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent-line, var(--accent));
+  opacity: 0.6;
+}
+.stat-card.green::before { --accent-line: var(--green); }
+.stat-card.red::before { --accent-line: var(--red); }
+.stat-card.amber::before { --accent-line: var(--amber); }
+
+.stat-label {
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text3); font-weight: 600; margin-bottom: 10px;
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 40px; letter-spacing: 1px;
+  color: var(--text); line-height: 1;
+}
+.stat-value.accent { color: var(--accent); }
+.stat-value.green { color: var(--green); }
+.stat-value.red { color: var(--red); }
+.stat-value.amber { color: var(--amber); }
+.stat-sub {
+  font-size: 11px; color: var(--text3); margin-top: 6px;
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.card-title {
+  font-size: 11px; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text3);
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px;
+}
+.card-title::before {
+  content: '';
+  width: 3px; height: 14px;
+  background: var(--accent);
+  border-radius: 2px;
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* ── PREDICTION CARDS ── */
+.predictions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.pred-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0;
+  overflow: hidden;
+  transition: all 0.25s;
+  cursor: pointer;
+  position: relative;
+}
+.pred-card:hover {
+  border-color: var(--border2);
+  transform: translateY(-3px);
+  box-shadow: var(--glow), 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.pred-card-header {
+  padding: 16px 20px 12px;
+  background: linear-gradient(135deg, var(--bg3), var(--card2));
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.pred-date {
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--text3);
+  letter-spacing: 0.5px;
+}
+.pred-outcome-badge {
+  font-size: 10px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; padding: 3px 10px;
+  border-radius: 20px;
+}
+.pred-outcome-badge.home { background: rgba(0,229,255,0.12); color: var(--accent); border: 1px solid rgba(0,229,255,0.25); }
+.pred-outcome-badge.draw { background: rgba(255,184,0,0.12); color: var(--amber); border: 1px solid rgba(255,184,0,0.25); }
+.pred-outcome-badge.away { background: rgba(255,61,107,0.12); color: var(--red); border: 1px solid rgba(255,61,107,0.25); }
+
+.pred-card-body { padding: 18px 20px; }
+
+.pred-teams {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.pred-team {
+  display: flex; align-items: center; gap: 10px; flex: 1;
+}
+.pred-team.away { flex-direction: row-reverse; }
+.pred-team-logo {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+  color: var(--text2); flex-shrink: 0;
+  overflow: hidden;
+}
+.pred-team-logo img { width: 100%; height: 100%; object-fit: contain; }
+.pred-team-name {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  line-height: 1.2;
+}
+.pred-team.away .pred-team-name { text-align: right; }
+.pred-vs {
+  font-family: var(--font-display); font-size: 18px;
+  color: var(--text3); flex-shrink: 0; padding: 0 10px;
+}
+
+/* ── PROB BARS ── */
+.prob-bars { display: flex; flex-direction: column; gap: 7px; }
+.prob-row { display: flex; align-items: center; gap: 10px; }
+.prob-label {
+  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text3); width: 42px; flex-shrink: 0;
+}
+.prob-bar-track {
+  flex: 1; height: 6px;
+  background: var(--bg3);
+  border-radius: 3px; overflow: hidden;
+}
+.prob-bar-fill {
+  height: 100%; border-radius: 3px;
+  transition: width 0.8s cubic-bezier(0.22,1,0.36,1);
+}
+.prob-bar-fill.home { background: linear-gradient(90deg, #00c4e0, #00e5ff); box-shadow: 0 0 8px rgba(0,229,255,0.5); }
+.prob-bar-fill.draw { background: linear-gradient(90deg, #cc8800, #ffb800); box-shadow: 0 0 8px rgba(255,184,0,0.4); }
+.prob-bar-fill.away { background: linear-gradient(90deg, #cc1144, #ff3d6b); box-shadow: 0 0 8px rgba(255,61,107,0.4); }
+.prob-pct {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  width: 36px; text-align: right; flex-shrink: 0;
+}
+.prob-pct.home { color: var(--accent); }
+.prob-pct.draw { color: var(--amber); }
+.prob-pct.away { color: var(--red); }
+
+.pred-card-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg3);
+}
+.pred-odds { display: flex; gap: 12px; }
+.pred-odds-item {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text3);
+}
+.pred-odds-item span { color: var(--text2); }
+.pred-confidence {
+  font-size: 10px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text3);
+}
+.pred-confidence span { color: var(--green); }
+
+/* ── RESULT BADGE ── */
+.result-badge {
+  position: absolute; top: 12px; right: 12px;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+}
+.result-badge.correct { background: rgba(0,255,136,0.15); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+.result-badge.wrong { background: rgba(255,61,107,0.15); color: var(--red); border: 1px solid rgba(255,61,107,0.3); }
+
+/* ── HISTORY TABLE ── */
+.history-table { width: 100%; border-collapse: collapse; }
+.history-table thead tr {
+  border-bottom: 1px solid var(--border);
+}
+.history-table th {
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text3); font-weight: 600; text-align: left;
+  padding: 0 16px 14px; white-space: nowrap;
+}
+.history-table td {
+  padding: 14px 16px; font-size: 13px; color: var(--text2);
+  border-bottom: 1px solid rgba(30,45,71,0.5);
+}
+.history-table tbody tr { transition: background 0.15s; }
+.history-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.history-table .team-cell { color: var(--text); font-weight: 500; }
+.history-table .mono { font-family: var(--font-mono); font-size: 12px; }
+.history-table .badge {
+  display: inline-flex; padding: 3px 10px;
+  border-radius: 20px; font-size: 10px; font-weight: 600;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.badge.home-win { background: rgba(0,229,255,0.1); color: var(--accent); }
+.badge.draw { background: rgba(255,184,0,0.1); color: var(--amber); }
+.badge.away-win { background: rgba(255,61,107,0.1); color: var(--red); }
+.badge.correct { background: rgba(0,255,136,0.1); color: var(--green); }
+.badge.wrong { background: rgba(255,61,107,0.1); color: var(--red); }
+.badge.pending { background: rgba(136,153,187,0.1); color: var(--text3); }
+
+/* ── ACCURACY PAGE ── */
+.accuracy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.accuracy-grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+.big-accuracy {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  position: relative; overflow: hidden;
+}
+.big-accuracy::before {
+  content: '';
+  position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+  width: 300px; height: 300px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,229,255,0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+.big-accuracy-label {
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 12px;
+}
+.big-accuracy-ring {
+  position: relative; width: 140px; height: 140px; margin-bottom: 16px;
+}
+.ring-svg { transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: var(--bg3); stroke-width: 10; }
+.ring-fill { fill: none; stroke: var(--accent); stroke-width: 10; stroke-linecap: round;
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.22,1,0.36,1);
+  filter: drop-shadow(0 0 6px rgba(0,229,255,0.5));
+}
+.ring-text {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.ring-pct {
+  font-family: var(--font-display); font-size: 38px;
+  color: var(--text); line-height: 1;
+}
+.ring-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.big-accuracy-desc { font-size: 13px; color: var(--text2); max-width: 180px; line-height: 1.5; }
+
+.class-accuracy { display: flex; flex-direction: column; gap: 12px; }
+.class-row { display: flex; flex-direction: column; gap: 6px; }
+.class-info { display: flex; justify-content: space-between; align-items: center; }
+.class-name { font-size: 12px; font-weight: 600; color: var(--text); }
+.class-pct { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+
+/* ── LOADER ── */
+.loader {
+  display: flex; align-items: center; justify-content: center;
+  padding: 60px; gap: 8px;
+}
+.loader-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); opacity: 0.3;
+  animation: loader-bounce 1.2s ease-in-out infinite;
+}
+.loader-dot:nth-child(2) { animation-delay: 0.2s; }
+.loader-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes loader-bounce {
+  0%,80%,100% { transform: scale(0.6); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align: center; padding: 80px 32px;
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+.empty-state h3 { font-size: 18px; color: var(--text2); margin-bottom: 8px; }
+.empty-state p { font-size: 13px; color: var(--text3); }
+
+/* ── TOAST ── */
+#toast-container {
+  position: fixed; bottom: 28px; right: 28px; z-index: 200;
+  display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+}
+.toast {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 12px 18px;
+  font-size: 13px; color: var(--text);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: toast-in 0.3s cubic-bezier(0.22,1,0.36,1);
+  display: flex; align-items: center; gap: 10px;
+  min-width: 220px;
+}
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error { border-left: 3px solid var(--red); }
+.toast.info { border-left: 3px solid var(--accent); }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── MISC ── */
+.section-title {
+  font-family: var(--font-display);
+  font-size: 28px; letter-spacing: 1px;
+  color: var(--text); margin-bottom: 20px;
+}
+.divider { height: 1px; background: var(--border); margin: 28px 0; }
+.tag {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 4px;
+  font-family: var(--font-mono); font-size: 10px;
+  background: rgba(0,229,255,0.08); color: var(--accent2);
+  border: 1px solid rgba(0,229,255,0.15);
+}
+
+/* Pagination */
+.pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin-top: 28px;
+}
+.page-btn {
+  padding: 8px 16px; font-size: 13px; font-weight: 500;
+  background: var(--card2); border: 1px solid var(--border);
+  color: var(--text2); border-radius: var(--radius-sm);
+  cursor: pointer; transition: all 0.2s;
+}
+.page-btn:hover:not(:disabled) { border-color: var(--accent2); color: var(--accent); }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.page-info { font-size: 12px; color: var(--text3); font-family: var(--font-mono); padding: 0 8px; }
+
+/* Profile page */
+.profile-grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+.profile-avatar-large {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, #00c4e0, #0055aa);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 32px; color: #fff;
+  border: 3px solid rgba(0,229,255,0.3);
+  box-shadow: 0 0 30px rgba(0,229,255,0.2);
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  nav { padding: 0 16px; }
+  .stats-row { grid-template-columns: repeat(2,1fr); }
+  .page { padding: 80px 16px 40px; }
+  .accuracy-grid { grid-template-columns: 1fr; }
+  .profile-grid { grid-template-columns: 1fr; }
+  .predictions-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH SCREEN ══════════════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-glow"></div>
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="wordmark">SOCCKA</div>
+      <div class="sub">EPL Prediction Engine · AI Powered</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('register')">Register</button>
+    </div>
+    <div id="auth-error" class="auth-error"></div>
+
+    <!-- LOGIN FORM -->
+    <div id="login-form">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="register-form" style="display:none">
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" id="reg-name" placeholder="John Doe"/>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="you@example.com"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="reg-pass" placeholder="••••••••"/>
+      </div>
+      <button class="btn-primary" id="reg-btn" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ════════════════════════════════════════════ -->
+<div id="app">
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">SOCCKA</div>
+    <div class="nav-links">
+      <button class="nav-link active" onclick="showPage('dashboard')">Dashboard</button>
+      <button class="nav-link" onclick="showPage('predictions')">Predictions</button>
+      <button class="nav-link" onclick="showPage('history')">History</button>
+      <button class="nav-link" onclick="showPage('accuracy')">Accuracy</button>
+      <button class="nav-link" onclick="showPage('profile')">Profile</button>
+    </div>
+    <div class="nav-right">
+      <div class="nav-status">LIVE</div>
+      <div class="nav-user">
+        <div class="nav-avatar" id="nav-avatar">U</div>
+        <span id="nav-username">User</span>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- ══ DASHBOARD ══ -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <h1>MATCH <span>INTELLIGENCE</span></h1>
+      <p>Live EPL predictions updated every matchday</p>
+    </div>
+
+    <div class="stats-row" id="dash-stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Predictions</div>
+        <div class="stat-value accent" id="dash-total">—</div>
+        <div class="stat-sub">All time</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Overall Accuracy</div>
+        <div class="stat-value green" id="dash-accuracy">—</div>
+        <div class="stat-sub">Correct predictions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Recent Accuracy</div>
+        <div class="stat-value accent" id="dash-recent">—</div>
+        <div class="stat-sub">Last 30 days</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-label">Model Status</div>
+        <div class="stat-value amber" id="dash-status">—</div>
+        <div class="stat-sub" id="dash-status-sub">Checking...</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="card">
+        <div class="card-title">Accuracy by Outcome</div>
+        <div id="dash-class-acc" class="class-accuracy">
+          <div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Next Fixtures</div>
+        <div id="dash-upcoming">
+          <div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PREDICTIONS ══ -->
+  <div class="page" id="page-predictions">
+    <div class="page-header">
+      <h1>UPCOMING <span>FIXTURES</span></h1>
+      <p>Predicted probability distributions for upcoming EPL matches</p>
+    </div>
+    <div id="predictions-grid" class="predictions-grid">
+      <div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
+    </div>
+    <div class="pagination" id="pred-pagination"></div>
+  </div>
+
+  <!-- ══ HISTORY ══ -->
+  <div class="page" id="page-history">
+    <div class="page-header">
+      <h1>PREDICTION <span>HISTORY</span></h1>
+      <p>Past predictions with actuals and model correctness tracking</p>
+    </div>
+    <div class="card">
+      <div class="card-title">All Predictions</div>
+      <div id="history-content">
+        <div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
+      </div>
+    </div>
+    <div class="pagination" id="hist-pagination"></div>
+  </div>
+
+  <!-- ══ ACCURACY ══ -->
+  <div class="page" id="page-accuracy">
+    <div class="page-header">
+      <h1>MODEL <span>PERFORMANCE</span></h1>
+      <p>Comprehensive accuracy metrics and prediction quality analysis</p>
+    </div>
+    <div id="accuracy-content">
+      <div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ PROFILE ══ -->
+  <div class="page" id="page-profile">
+    <div class="page-header">
+      <h1>MY <span>PROFILE</span></h1>
+      <p>Account settings and preferences</p>
+    </div>
+    <div class="profile-grid">
+      <div class="card" style="text-align:center;padding:32px;">
+        <div class="profile-avatar-large" id="profile-avatar" style="margin:0 auto;">U</div>
+        <div style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;" id="profile-name">—</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:20px;" id="profile-email">—</div>
+        <div class="tag">EPL Analyst</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Account Details</div>
+        <div id="profile-details">
+          <div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<script>
+/* ════════════════════════════════════════════
+   CONFIG
+   ════════════════════════════════════════════ */
+const API = 'https://elliott888-epl-model.hf.space';
+let TOKEN = localStorage.getItem('soccka_token') || null;
+let CURRENT_USER = null;
+let predPage = 0, histPage = 0;
+const LIMIT = 12;
+
+/* ════════════════════════════════════════════
+   UTILS
+   ════════════════════════════════════════════ */
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = { success: '✓', error: '✕', info: '◆' };
+  el.innerHTML = `<span style="color:${type==='success'?'var(--green)':type==='error'?'var(--red)':'var(--accent)'}">${icons[type]}</span>${msg}`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`;
+  const res = await fetch(API + path, { headers, ...opts });
+  if (res.status === 401) { doLogout(); throw new Error('Unauthorized'); }
+  return res;
+}
+
+function fmt(date) {
+  const d = new Date(date);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
+    ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function pct(v) { return Math.round(v * 100); }
+
+function outcomeClass(o) {
+  if (!o) return 'pending';
+  o = o.toLowerCase();
+  if (o.includes('home')) return 'home-win';
+  if (o.includes('draw')) return 'draw';
+  return 'away-win';
+}
+
+function initials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function teamLogo(url, name) {
+  if (url) return `<img src="${API}${url}" alt="${name}" onerror="this.style.display='none';this.parentNode.textContent='${initials(name)}'"/>`;
+  return initials(name);
+}
+
+/* ════════════════════════════════════════════
+   AUTH
+   ════════════════════════════════════════════ */
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
+  document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) return showAuthError('Please fill all fields');
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    const fd = new URLSearchParams();
+    fd.append('email', email); fd.append('password', pass); fd.append('username', email);
+    const res = await fetch(`${API}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: fd.toString()
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.detail?.[0]?.msg || 'Invalid credentials'); }
+    const data = await res.json();
+    TOKEN = data.access_token;
+    localStorage.setItem('soccka_token', TOKEN);
+    await bootApp();
+  } catch(e) { showAuthError(e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Sign In'; }
+}
+
+async function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  if (!name || !email || !pass) return showAuthError('Please fill all fields');
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  try {
+    const res = await fetch(`${API}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass, full_name: name })
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.detail?.[0]?.msg || 'Registration failed'); }
+    const data = await res.json();
+    TOKEN = data.access_token;
+    localStorage.setItem('soccka_token', TOKEN);
+    await bootApp();
+  } catch(e) { showAuthError(e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Create Account'; }
+}
+
+function doLogout() {
+  TOKEN = null; CURRENT_USER = null;
+  localStorage.removeItem('soccka_token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  toast('Signed out', 'info');
+}
+
+/* ════════════════════════════════════════════
+   BOOT
+   ════════════════════════════════════════════ */
+async function bootApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  try {
+    const res = await api('/user');
+    if (res.ok) {
+      CURRENT_USER = await res.json();
+      const initials_str = initials(CURRENT_USER.full_name || CURRENT_USER.email);
+      document.getElementById('nav-avatar').textContent = initials_str;
+      document.getElementById('nav-username').textContent = (CURRENT_USER.full_name || CURRENT_USER.email).split(' ')[0];
+    }
+  } catch(e) {}
+  loadDashboard();
+}
+
+/* ════════════════════════════════════════════
+   NAVIGATION
+   ════════════════════════════════════════════ */
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(l => {
+    if (l.textContent.toLowerCase().includes(name.slice(0,4))) l.classList.add('active');
+  });
+  if (name === 'predictions') loadPredictions();
+  if (name === 'history') loadHistory();
+  if (name === 'accuracy') loadAccuracy();
+  if (name === 'profile') loadProfile();
+}
+
+/* ════════════════════════════════════════════
+   DASHBOARD
+   ════════════════════════════════════════════ */
+async function loadDashboard() {
+  // Health check
+  try {
+    const res = await fetch(`${API}/health`);
+    const h = await res.json();
+    document.getElementById('dash-status').textContent = h.status === 'healthy' ? 'LIVE' : 'DOWN';
+    document.getElementById('dash-status-sub').textContent = `DB: ${h.services?.database} · Scheduler: ${h.services?.scheduler}`;
+  } catch(e) {
+    document.getElementById('dash-status').textContent = 'ERR';
+  }
+
+  // Accuracy
+  try {
+    const res = await api('/prediction-accuracy');
+    const d = await res.json();
+    document.getElementById('dash-total').textContent = d.total_predictions_analyzed || 0;
+    document.getElementById('dash-accuracy').textContent = (d.overall_accuracy || 0) + '%';
+    document.getElementById('dash-recent').textContent = (d.recent_accuracy_30_days || 0) + '%';
+    renderClassAccuracy(d);
+  } catch(e) {}
+
+  // Upcoming
+  try {
+    const res = await api('/predictions?skip=0&limit=5');
+    if (res.ok) {
+      const text = await res.text();
+      let items = [];
+      try { const j = JSON.parse(text); items = Array.isArray(j) ? j : (j.items || []); } catch(e2) {}
+      renderUpcoming(items);
+    }
+  } catch(e) {}
+}
+
+function renderClassAccuracy(d) {
+  const el = document.getElementById('dash-class-acc');
+  const rows = [
+    { label: 'Home Win', pct: d.home_win_accuracy || 0, color: 'var(--accent)' },
+    { label: 'Draw',     pct: d.draw_accuracy || 0,     color: 'var(--amber)' },
+    { label: 'Away Win', pct: d.away_win_accuracy || 0, color: 'var(--red)' },
+  ];
+  el.innerHTML = rows.map(r => `
+    <div class="class-row">
+      <div class="class-info">
+        <div class="class-name">${r.label}</div>
+        <div class="class-pct" style="color:${r.color}">${r.pct}%</div>
+      </div>
+      <div class="prob-bar-track" style="height:8px;">
+        <div class="prob-bar-fill" style="width:${r.pct}%;background:${r.color};box-shadow:0 0 8px ${r.color}4a"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderUpcoming(items) {
+  const el = document.getElementById('dash-upcoming');
+  if (!items.length) { el.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--text3)">No upcoming fixtures</div>'; return; }
+  el.innerHTML = items.slice(0, 5).map(p => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(30,45,71,0.5);">
+      <div style="font-size:13px;font-weight:600;color:var(--text);">${p.home_team} <span style="color:var(--text3);font-weight:400">vs</span> ${p.away_team}</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--accent)">${Math.round((p.prob_home||0)*100)}%</span>
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--amber)">${Math.round((p.prob_draw||0)*100)}%</span>
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--red)">${Math.round((p.prob_away||0)*100)}%</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ════════════════════════════════════════════
+   PREDICTIONS
+   ════════════════════════════════════════════ */
+async function loadPredictions() {
+  document.getElementById('predictions-grid').innerHTML = '<div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>';
+  try {
+    const res = await api(`/predictions?skip=${predPage * LIMIT}&limit=${LIMIT}`);
+    if (!res.ok) throw new Error();
+    const text = await res.text();
+    let items = [];
+    try { const j = JSON.parse(text); items = Array.isArray(j) ? j : (j.items || []); } catch(e) {}
+    renderPredictionCards(items);
+    renderPagination('pred-pagination', predPage, items.length, () => { predPage--; loadPredictions(); }, () => { predPage++; loadPredictions(); });
+  } catch(e) {
+    document.getElementById('predictions-grid').innerHTML = '<div class="empty-state"><div class="icon">⚽</div><h3>No predictions available</h3><p>Predictions will appear here once the model runs</p></div>';
+  }
+}
+
+function renderPredictionCards(items) {
+  const el = document.getElementById('predictions-grid');
+  if (!items.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">⚽</div><h3>No predictions found</h3><p>No upcoming fixture predictions available</p></div>';
+    return;
+  }
+  el.innerHTML = items.map(p => buildPredCard(p)).join('');
+  // Animate bars after render
+  setTimeout(() => {
+    el.querySelectorAll('.prob-bar-fill').forEach(bar => {
+      const w = bar.dataset.width;
+      if (w) bar.style.width = w + '%';
+    });
+  }, 50);
+}
+
+function buildPredCard(p) {
+  const homeLogoBg = `${p.home_team_logo ? `<img src="${API}${p.home_team_logo}" onerror="this.style.display='none';this.nextSibling.style.display='flex'" style="width:100%;height:100%;object-fit:contain;border-radius:50%"/><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:11px;font-weight:600">${initials(p.home_team)}</span>` : `<span style="font-size:11px;font-weight:600">${initials(p.home_team)}</span>`}`;
+  const awayLogoBg = `${p.away_team_logo ? `<img src="${API}${p.away_team_logo}" onerror="this.style.display='none';this.nextSibling.style.display='flex'" style="width:100%;height:100%;object-fit:contain;border-radius:50%"/><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:11px;font-weight:600">${initials(p.away_team)}</span>` : `<span style="font-size:11px;font-weight:600">${initials(p.away_team)}</span>`}`;
+  const oc = p.outcome || '';
+  const badgeClass = oc.toLowerCase().includes('home') ? 'home' : oc.toLowerCase().includes('draw') ? 'draw' : 'away';
+  const pH = Math.round((p.prob_home || 0) * 100);
+  const pD = Math.round((p.prob_draw || 0) * 100);
+  const pA = Math.round((p.prob_away || 0) * 100);
+  const conf = Math.round((p.confidence || 0) * 100);
+  const resultHTML = p.model_was_correct !== null
+    ? `<div class="result-badge ${p.model_was_correct ? 'correct' : 'wrong'}">${p.model_was_correct ? '✓' : '✕'}</div>` : '';
+
+  return `<div class="pred-card">
+    ${resultHTML}
+    <div class="pred-card-header">
+      <span class="pred-date">${fmt(p.match_date)}</span>
+      <span class="pred-outcome-badge ${badgeClass}">${oc}</span>
+    </div>
+    <div class="pred-card-body">
+      <div class="pred-teams">
+        <div class="pred-team">
+          <div class="pred-team-logo">${homeLogoBg}</div>
+          <div class="pred-team-name">${p.home_team || '—'}</div>
+        </div>
+        <div class="pred-vs">VS</div>
+        <div class="pred-team away">
+          <div class="pred-team-logo">${awayLogoBg}</div>
+          <div class="pred-team-name">${p.away_team || '—'}</div>
+        </div>
+      </div>
+      <div class="prob-bars">
+        <div class="prob-row">
+          <div class="prob-label">Home</div>
+          <div class="prob-bar-track"><div class="prob-bar-fill home" style="width:0" data-width="${pH}"></div></div>
+          <div class="prob-pct home">${pH}%</div>
+        </div>
+        <div class="prob-row">
+          <div class="prob-label">Draw</div>
+          <div class="prob-bar-track"><div class="prob-bar-fill draw" style="width:0" data-width="${pD}"></div></div>
+          <div class="prob-pct draw">${pD}%</div>
+        </div>
+        <div class="prob-row">
+          <div class="prob-label">Away</div>
+          <div class="prob-bar-track"><div class="prob-bar-fill away" style="width:0" data-width="${pA}"></div></div>
+          <div class="prob-pct away">${pA}%</div>
+        </div>
+      </div>
+    </div>
+    <div class="pred-card-footer">
+      <div class="pred-odds">
+        <div class="pred-odds-item">H <span>${p.avg_h || '—'}</span></div>
+        <div class="pred-odds-item">D <span>${p.avg_d || '—'}</span></div>
+        <div class="pred-odds-item">A <span>${p.avg_a || '—'}</span></div>
+      </div>
+      <div class="pred-confidence">Conf: <span>${conf}%</span></div>
+    </div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════════
+   HISTORY
+   ════════════════════════════════════════════ */
+async function loadHistory() {
+  document.getElementById('history-content').innerHTML = '<div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>';
+  try {
+    const res = await api(`/prediction-history?skip=${histPage * 20}&limit=20`);
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    const items = d.items || [];
+    renderHistoryTable(items, d.total || items.length);
+    renderPagination('hist-pagination', histPage, items.length, () => { histPage--; loadHistory(); }, () => { histPage++; loadHistory(); });
+  } catch(e) {
+    document.getElementById('history-content').innerHTML = '<div class="empty-state"><div class="icon">📋</div><h3>No history available</h3><p>Past predictions will appear here</p></div>';
+  }
+}
+
+function renderHistoryTable(items, total) {
+  const el = document.getElementById('history-content');
+  if (!items.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><h3>No records yet</h3><p>History will appear as matches are predicted</p></div>';
+    return;
+  }
+  const rows = items.map(p => {
+    const correctBadge = p.model_was_correct === true
+      ? '<span class="badge correct">Correct</span>'
+      : p.model_was_correct === false
+        ? '<span class="badge wrong">Wrong</span>'
+        : '<span class="badge pending">Pending</span>';
+    const oc = p.outcome || '';
+    const ocBadge = `<span class="badge ${outcomeClass(oc)}">${oc}</span>`;
+    const actualBadge = p.actual_result
+      ? `<span class="badge ${p.actual_result==='H'?'home-win':p.actual_result==='D'?'draw':'away-win'}">${p.actual_result==='H'?'Home':p.actual_result==='D'?'Draw':'Away'}</span>`
+      : '<span style="color:var(--text3);font-size:12px;">—</span>';
+    const pH = Math.round((p.prob_home||0)*100), pD = Math.round((p.prob_draw||0)*100), pA = Math.round((p.prob_away||0)*100);
+    return `<tr>
+      <td style="color:var(--text3);font-family:var(--font-mono);font-size:11px;">${fmt(p.match_date)}</td>
+      <td class="team-cell">${p.home_team}</td>
+      <td class="team-cell">${p.away_team}</td>
+      <td><span class="mono" style="color:var(--accent)">${pH}%</span> / <span class="mono" style="color:var(--amber)">${pD}%</span> / <span class="mono" style="color:var(--red)">${pA}%</span></td>
+      <td>${ocBadge}</td>
+      <td>${actualBadge}</td>
+      <td>${correctBadge}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;font-family:var(--font-mono)">
+      ${total} total records
+    </div>
+    <div style="overflow-x:auto;">
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Home</th>
+          <th>Away</th>
+          <th>H / D / A Prob</th>
+          <th>Prediction</th>
+          <th>Actual</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </div>`;
+}
+
+/* ════════════════════════════════════════════
+   ACCURACY
+   ════════════════════════════════════════════ */
+async function loadAccuracy() {
+  document.getElementById('accuracy-content').innerHTML = '<div class="loader"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>';
+  try {
+    const res = await api('/prediction-accuracy');
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    renderAccuracy(d);
+  } catch(e) {
+    document.getElementById('accuracy-content').innerHTML = '<div class="empty-state"><div class="icon">📊</div><h3>No accuracy data</h3><p>Accuracy stats will appear once predictions are resolved</p></div>';
+  }
+}
+
+function renderAccuracy(d) {
+  const el = document.getElementById('accuracy-content');
+  const overall = d.overall_accuracy || 0;
+  const circumference = 2 * Math.PI * 54;
+  const offset = circumference - (overall / 100) * circumference;
+
+  el.innerHTML = `
+    <div class="accuracy-grid" style="margin-bottom:20px;">
+      <div class="big-accuracy">
+        <div class="big-accuracy-label">Overall Accuracy</div>
+        <div class="big-accuracy-ring">
+          <svg class="ring-svg" width="140" height="140" viewBox="0 0 140 140">
+            <circle class="ring-bg" cx="70" cy="70" r="54"/>
+            <circle class="ring-fill" cx="70" cy="70" r="54"
+              stroke-dasharray="${circumference}"
+              stroke-dashoffset="${offset}"/>
+          </svg>
+          <div class="ring-text">
+            <div class="ring-pct">${overall}%</div>
+            <div class="ring-sub">accuracy</div>
+          </div>
+        </div>
+        <div class="big-accuracy-desc">${d.correct_predictions || 0} correct out of ${d.total_predictions_analyzed || 0} analyzed</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Accuracy by Outcome Class</div>
+        <div style="display:flex;flex-direction:column;gap:20px;margin-top:8px;">
+          ${[
+            { label: 'Home Win', val: d.home_win_accuracy || 0, color: 'var(--accent)', barClass: 'home' },
+            { label: 'Draw', val: d.draw_accuracy || 0, color: 'var(--amber)', barClass: 'draw' },
+            { label: 'Away Win', val: d.away_win_accuracy || 0, color: 'var(--red)', barClass: 'away' },
+          ].map(r => `
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:13px;font-weight:600;color:var(--text)">${r.label}</span>
+                <span style="font-family:var(--font-mono);font-size:14px;color:${r.color};font-weight:500">${r.val}%</span>
+              </div>
+              <div class="prob-bar-track" style="height:10px;">
+                <div class="prob-bar-fill ${r.barClass}" style="width:${r.val}%"></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+      <div class="stat-card">
+        <div class="stat-label">Total Analyzed</div>
+        <div class="stat-value accent">${d.total_predictions_analyzed || 0}</div>
+        <div class="stat-sub">predictions evaluated</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Recent (30d)</div>
+        <div class="stat-value green">${d.recent_accuracy_30_days || 0}%</div>
+        <div class="stat-sub">${d.recent_predictions_count || 0} predictions</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-label">High Confidence</div>
+        <div class="stat-value amber">${d.high_confidence_accuracy || 0}%</div>
+        <div class="stat-sub">${d.high_confidence_predictions || 0} predictions</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <div class="card" style="padding:16px 24px;">
+        <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">
+          Last updated: ${d.last_updated ? fmt(d.last_updated) : '—'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ════════════════════════════════════════════
+   PROFILE
+   ════════════════════════════════════════════ */
+async function loadProfile() {
+  try {
+    const res = await api('/user');
+    if (!res.ok) throw new Error();
+    const u = await res.json();
+    CURRENT_USER = u;
+    const init = initials(u.full_name || u.email);
+    document.getElementById('profile-avatar').textContent = init;
+    document.getElementById('profile-name').textContent = u.full_name || '—';
+    document.getElementById('profile-email').textContent = u.email || '—';
+    document.getElementById('profile-details').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:18px;">
+        ${[
+          { label: 'User ID', value: `#${u.id}` },
+          { label: 'Full Name', value: u.full_name || '—' },
+          { label: 'Email', value: u.email || '—' },
+          { label: 'Role', value: u.is_admin ? 'Administrator' : 'Analyst' },
+        ].map(f => `
+          <div style="padding-bottom:18px;border-bottom:1px solid var(--border);">
+            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:6px;">${f.label}</div>
+            <div style="font-size:14px;color:var(--text);font-weight:500;">${f.value}</div>
+          </div>
+        `).join('')}
+      </div>`;
+  } catch(e) {
+    document.getElementById('profile-details').innerHTML = '<div style="color:var(--text3);font-size:13px;">Failed to load profile</div>';
+  }
+}
+
+/* ════════════════════════════════════════════
+   PAGINATION
+   ════════════════════════════════════════════ */
+function renderPagination(id, page, itemCount, prevFn, nextFn) {
+  const el = document.getElementById(id);
+  el.innerHTML = `
+    <button class="page-btn" onclick="(${prevFn.toString()})()" ${page === 0 ? 'disabled' : ''}>← Previous</button>
+    <span class="page-info">Page ${page + 1}</span>
+    <button class="page-btn" onclick="(${nextFn.toString()})()" ${itemCount < LIMIT ? 'disabled' : ''}>Next →</button>
+  `;
+}
+
+/* ════════════════════════════════════════════
+   INIT
+   ════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  if (TOKEN) {
+    bootApp();
+  }
+});
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const loginForm = document.getElementById('login-form');
+    const regForm = document.getElementById('register-form');
+    if (loginForm.style.display !== 'none' || !loginForm.style.display) {
+      if (document.getElementById('auth-screen').style.display !== 'none') doLogin();
+    }
+  }
+});
+</script>
+</body>
+</html>
